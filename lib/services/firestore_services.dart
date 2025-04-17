@@ -3,38 +3,31 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Create a new group with name, creator name, and expiry time
+  // Create a new group
   Future<String> createGroup({
     required String groupName,
-    required String creatorName,
-    required Duration expiryDuration,
+    required DateTime expiryTime,
   }) async {
-    final groupId = _firestore.collection('groups').doc().id;
-    final now = DateTime.now();
-    final expiryTime = now.add(expiryDuration);
-
-    await _firestore.collection('groups').doc(groupId).set({
+    final docRef = _firestore.collection('groups').doc();
+    await docRef.set({
+      'groupId': docRef.id,
       'name': groupName,
-      'creator': creatorName,
-      'createdAt': now,
-      'expiry': expiryTime,
-      'groupId': groupId,
+      'expiry': Timestamp.fromDate(expiryTime),
+      'createdAt': Timestamp.now(),
     });
-
-    return groupId;
+    return docRef.id;
   }
 
-  /// Join a group by checking if it exists and not expired
-  Future<bool> checkGroupExists(String groupId) async {
+  // Get group details by group code
+  Future<DocumentSnapshot?> getGroup(String groupId) async {
     final doc = await _firestore.collection('groups').doc(groupId).get();
-
-    if (!doc.exists) return false;
-
-    final expiry = (doc['expiry'] as Timestamp).toDate();
-    return expiry.isAfter(DateTime.now());
+    if (doc.exists) {
+      return doc;
+    }
+    return null;
   }
 
-  /// Send a message to a group
+  // Send a chat message
   Future<void> sendMessage({
     required String groupId,
     required String sender,
@@ -47,14 +40,22 @@ class FirestoreService {
         .add({
       'sender': sender,
       'message': message,
-      'timestamp': DateTime.now(),
+      'timestamp': Timestamp.now(),
     });
   }
 
-  /// (Optional) Get group name and expiry
-  Future<Map<String, dynamic>?> getGroupDetails(String groupId) async {
-    final doc = await _firestore.collection('groups').doc(groupId).get();
-    if (!doc.exists) return null;
-    return doc.data();
+  // Stream chat messages
+  Stream<QuerySnapshot> getMessages(String groupId) {
+    return _firestore
+        .collection('groups')
+        .doc(groupId)
+        .collection('messages')
+        .orderBy('timestamp', descending: false)
+        .snapshots();
+  }
+
+  // Get all groups
+  Stream<QuerySnapshot> getAllGroups() {
+    return _firestore.collection('groups').orderBy('createdAt').snapshots();
   }
 }

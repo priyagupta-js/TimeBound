@@ -1,8 +1,11 @@
+// 📁 chat_screen.dart
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:timebound/services/firestore_services.dart';
+import '../services/firestore_services.dart';
+import 'home_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String groupId;
@@ -54,7 +57,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _startTimer() {
-    _countdownTimer = Timer.periodic(Duration(seconds: 1), (_) {
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_expiryTime != null) {
         final now = DateTime.now();
         final diff = _expiryTime!.difference(now);
@@ -85,12 +88,41 @@ class _ChatScreenState extends State<ChatScreen> {
     _msgController.clear();
   }
 
+  void _copyGroupId() {
+    Clipboard.setData(ClipboardData(text: widget.groupId));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Group ID copied')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.groupName),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+            (route) => false,
+          ),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.groupName),
+            Text(
+              "ID: ${widget.groupId}",
+              style: const TextStyle(fontSize: 12, color: Colors.white70),
+            ),
+          ],
+        ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.copy),
+            tooltip: 'Copy Group ID',
+            onPressed: _copyGroupId,
+          ),
           if (_remainingTime.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -111,8 +143,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   .orderBy('timestamp')
                   .snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData)
-                  return Center(child: CircularProgressIndicator());
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
                 final messages = snapshot.data!.docs;
 
@@ -140,15 +173,20 @@ class _ChatScreenState extends State<ChatScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(msg['sender'],
-                                style: TextStyle(fontWeight: FontWeight.bold)),
-                            SizedBox(height: 4),
+                            Text(
+                              msg['sender'],
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 4),
                             Text(msg['message']),
                             Align(
                               alignment: Alignment.bottomRight,
-                              child: Text(time,
-                                  style: TextStyle(
-                                      fontSize: 10, color: Colors.grey)),
+                              child: Text(
+                                time,
+                                style: const TextStyle(
+                                    fontSize: 10, color: Colors.grey),
+                              ),
                             ),
                           ],
                         ),
@@ -159,7 +197,7 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-          Divider(height: 1),
+          const Divider(height: 1),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             child: Row(
@@ -174,9 +212,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 IconButton(
-                  icon: Icon(Icons.send),
+                  icon: const Icon(Icons.send),
                   onPressed: _sendMessage,
                   color: Colors.deepPurple,
                 ),

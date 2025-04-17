@@ -1,5 +1,6 @@
+// 📁 join_group_screen.dart
 import 'package:flutter/material.dart';
-import 'package:timebound/services/firestore_services.dart';
+import '../services/firestore_services.dart';
 import 'chat_screen.dart';
 
 class JoinGroupScreen extends StatefulWidget {
@@ -10,78 +11,82 @@ class JoinGroupScreen extends StatefulWidget {
 }
 
 class _JoinGroupScreenState extends State<JoinGroupScreen> {
-  final _groupCodeController = TextEditingController();
-  final _nameController = TextEditingController();
-  bool _isJoining = false;
-  String? _error;
+  final TextEditingController _groupIdController = TextEditingController();
+  final FirestoreService _firestoreService = FirestoreService();
 
   void _joinGroup() async {
-    final groupCode = _groupCodeController.text.trim();
-    final name = _nameController.text.trim();
+    final groupId = _groupIdController.text.trim();
 
-    if (groupCode.isEmpty || name.isEmpty) {
-      setState(() => _error = "Please fill all fields.");
+    if (groupId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a Group ID')),
+      );
       return;
     }
 
-    setState(() {
-      _isJoining = true;
-      _error = null;
-    });
+    final doc = await _firestoreService.getGroup(groupId);
+    if (doc != null) {
+      final groupName = doc['name'];
 
-    final group = await FirestoreService().getGroupDetails(groupCode);
+      final userName = await _promptForName();
+      if (userName == null || userName.isEmpty) return;
 
-    if (group == null) {
-      setState(() {
-        _error = "Group not found or expired.";
-        _isJoining = false;
-      });
-      return;
-    }
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ChatScreen(
-          groupId: groupCode,
-          groupName: group['name'],
-          userName: name,
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ChatScreen(
+            groupId: groupId,
+            groupName: groupName,
+            userName: userName,
+          ),
         ),
-      ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Group not found')),
+      );
+    }
+  }
+
+  Future<String?> _promptForName() async {
+    String userName = "";
+    return showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Enter your name"),
+          content: TextField(
+            onChanged: (value) => userName = value,
+            decoration: const InputDecoration(hintText: "e.g., Sarah"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, userName),
+              child: const Text("OK"),
+            ),
+          ],
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Join Group")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: _groupCodeController,
-              decoration: InputDecoration(labelText: 'Group Code'),
-            ),
-            SizedBox(height: 16),
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(labelText: 'Your Name'),
-            ),
-            SizedBox(height: 24),
-            if (_error != null)
-              Text(
-                _error!,
-                style: TextStyle(color: Colors.red),
-              ),
-            ElevatedButton(
-              onPressed: _isJoining ? null : _joinGroup,
-              child: _isJoining
-                  ? CircularProgressIndicator(color: Colors.white)
-                  : Text('Join Group'),
-            ),
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          TextField(
+            controller: _groupIdController,
+            decoration: const InputDecoration(labelText: 'Enter Group ID'),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: _joinGroup,
+            icon: const Icon(Icons.login),
+            label: const Text('Join Group'),
+          ),
+        ],
       ),
     );
   }
