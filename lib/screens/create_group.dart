@@ -1,6 +1,5 @@
-// 📁 create_group_screen.dart
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/firestore_services.dart';
 import 'chat_screen.dart';
 
@@ -15,6 +14,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   final TextEditingController _groupNameController = TextEditingController();
   String? _selectedDuration;
   bool _isCreating = false;
+  String? _currentUserName;
 
   final List<String> _durations = ['2 min', '1 hour', '6 hours', '1 day'];
 
@@ -33,33 +33,23 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     }
   }
 
-  Future<String?> _promptForName() async {
-    String userName = "";
-    return showDialog<String>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Enter your name"),
-          content: TextField(
-            onChanged: (value) => userName = value,
-            decoration: const InputDecoration(hintText: "e.g., John"),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, userName),
-              child: const Text("OK"),
-            ),
-          ],
-        );
-      },
-    );
+  Future<void> _loadCurrentUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _currentUserName = prefs.getString('username');
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
   }
 
   void _createGroup() async {
-    if (_groupNameController.text.isEmpty || _selectedDuration == null) return;
-
-    final userName = await _promptForName();
-    if (userName == null || userName.isEmpty) return;
+    if (_groupNameController.text.isEmpty ||
+        _selectedDuration == null ||
+        _currentUserName == null) return;
 
     setState(() => _isCreating = true);
 
@@ -78,7 +68,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         builder: (_) => ChatScreen(
           groupId: groupId,
           groupName: _groupNameController.text.trim(),
-          userName: userName,
+          userName: _currentUserName!,
         ),
       ),
     );

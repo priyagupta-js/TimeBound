@@ -1,34 +1,32 @@
 // 📁 existing_group_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/firestore_services.dart';
 import 'chat_screen.dart';
 
-class ExistingGroupScreen extends StatelessWidget {
+class ExistingGroupScreen extends StatefulWidget {
+  const ExistingGroupScreen({super.key});
+
+  @override
+  State<ExistingGroupScreen> createState() => _ExistingGroupScreenState();
+}
+
+class _ExistingGroupScreenState extends State<ExistingGroupScreen> {
   final FirestoreService _firestoreService = FirestoreService();
+  String? _currentUserName;
 
-  ExistingGroupScreen({super.key});
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
 
-  Future<String?> _promptForName(BuildContext context) async {
-    String userName = "";
-    return showDialog<String>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Enter your name"),
-          content: TextField(
-            onChanged: (value) => userName = value,
-            decoration: const InputDecoration(hintText: "e.g., Alex"),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, userName),
-              child: const Text("OK"),
-            ),
-          ],
-        );
-      },
-    );
+  Future<void> _loadCurrentUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _currentUserName = prefs.getString('username');
+    });
   }
 
   @override
@@ -46,10 +44,22 @@ class ExistingGroupScreen extends StatelessWidget {
           return const Center(child: Text("Nothing to show"));
         }
 
+        final activeGroups = groups.where((group) {
+          final expiry = (group['expiry'] as Timestamp).toDate();
+          return DateTime.now().isBefore(expiry);
+        }).toList();
+
+        final expiredGroups = groups.where((group) {
+          final expiry = (group['expiry'] as Timestamp).toDate();
+          return DateTime.now().isAfter(expiry);
+        }).toList();
+
+        final sortedGroups = [...activeGroups, ...expiredGroups];
+
         return ListView.builder(
-          itemCount: groups.length,
+          itemCount: sortedGroups.length,
           itemBuilder: (context, index) {
-            final group = groups[index];
+            final group = sortedGroups[index];
             final groupName = group['name'];
             final groupId = group['groupId'];
             final expiry = (group['expiry'] as Timestamp).toDate();
@@ -69,19 +79,16 @@ class ExistingGroupScreen extends StatelessWidget {
                   ? const Icon(Icons.lock, color: Colors.grey)
                   : const Icon(Icons.chat),
               enabled: !isExpired,
-              onTap: isExpired
+              onTap: isExpired || _currentUserName == null
                   ? null
-                  : () async {
-                      final userName = await _promptForName(context);
-                      if (userName == null || userName.isEmpty) return;
-
+                  : () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => ChatScreen(
                             groupId: groupId,
                             groupName: groupName,
-                            userName: userName,
+                            userName: _currentUserName!,
                           ),
                         ),
                       );

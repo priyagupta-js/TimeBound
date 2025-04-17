@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:timebound/firebase_options.dart';
 import 'package:timebound/screens/home_screen.dart';
+import 'package:timebound/screens/login_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(MaterialApp(home: HomeScreen()));
+  runApp(MaterialApp(home: LoginScreen()));
 }
 
 // class MyApp extends StatelessWidget {

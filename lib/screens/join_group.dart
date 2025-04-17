@@ -1,5 +1,5 @@
-// 📁 join_group_screen.dart
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/firestore_services.dart';
 import 'chat_screen.dart';
 
@@ -13,6 +13,20 @@ class JoinGroupScreen extends StatefulWidget {
 class _JoinGroupScreenState extends State<JoinGroupScreen> {
   final TextEditingController _groupIdController = TextEditingController();
   final FirestoreService _firestoreService = FirestoreService();
+  String? _currentUserName;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _currentUserName = prefs.getString('username');
+    });
+  }
 
   void _joinGroup() async {
     final groupId = _groupIdController.text.trim();
@@ -28,8 +42,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
     if (doc != null) {
       final groupName = doc['name'];
 
-      final userName = await _promptForName();
-      if (userName == null || userName.isEmpty) return;
+      if (_currentUserName == null || _currentUserName!.isEmpty) return;
 
       Navigator.push(
         context,
@@ -37,7 +50,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
           builder: (context) => ChatScreen(
             groupId: groupId,
             groupName: groupName,
-            userName: userName,
+            userName: _currentUserName!,
           ),
         ),
       );
@@ -46,28 +59,6 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
         const SnackBar(content: Text('Group not found')),
       );
     }
-  }
-
-  Future<String?> _promptForName() async {
-    String userName = "";
-    return showDialog<String>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Enter your name"),
-          content: TextField(
-            onChanged: (value) => userName = value,
-            decoration: const InputDecoration(hintText: "e.g., Sarah"),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, userName),
-              child: const Text("OK"),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
