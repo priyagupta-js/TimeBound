@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "870539036227",
+    "project_id": "timebound-ef7e9",
+    "storage_bucket": "timebound-ef7e9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:870539036227:android:103aa4e64be850d7e436f6",
+        "android_client_info": {
+          "package_name": "com.example.timebound"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCXDjUjvzW3w0pw8ZxPkPOeW8gWK5HRQuo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
